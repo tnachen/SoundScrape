@@ -12,6 +12,8 @@ import urllib
 
 from clint.textui import colored, puts, progress
 from datetime import datetime
+from fake_useragent import UserAgent
+
 from mutagen.mp3 import MP3, EasyMP3
 from mutagen.id3 import APIC, WXXX
 from mutagen.id3 import ID3 as OldID3
@@ -28,7 +30,7 @@ MAGIC_CLIENT_ID = 'b45b1aa10f1ac2941910a7f0d10f8e28'
 
 AGGRESSIVE_CLIENT_ID = 'fDoItMDbsbZz8dY16ZzARCZmzgHBPotA'
 APP_VERSION = '1481046241'
-
+USER_AGENT = UserAgent().random
 ####################################################################
 
 
@@ -653,7 +655,8 @@ def get_bandcamp_metadata(url):
     or a JSON if we can already parse album/track info from the given url.
     The JSON is "sloppy". The native python JSON parser often can't deal, so we use the more tolerant demjson instead.
     """
-    request = requests.get(url)
+    headers = {'User-Agent': USER_AGENT}
+    request = requests.get(url, headers=headers)
     try:
         sloppy_json = request.text.split("var TralbumData = ")
         sloppy_json = sloppy_json[1].replace('" + "', "")
@@ -1179,13 +1182,13 @@ def download_file(url, path, session=None, params=None):
 
     # Use a temporary file so that we don't import incomplete files.
     tmp_path = path + '.tmp'
-
+    headers = {'User-Agent': USER_AGENT}
     if session and params:
-        r = session.get( url, params=params, stream=True )
+        r = session.get(url, params=params, stream=True, headers=headers)
     elif session and not params:
-        r = session.get( url, stream=True )
+        r = session.get(url, stream=True, headers=headers)
     else:
-        r = requests.get(url, stream=True)
+        r = requests.get(url, stream=True, allow_redirects=True, headers=headers)
     with open(tmp_path, 'wb') as f:
         total_length = int(r.headers.get('content-length', 0))
         for chunk in progress.bar(r.iter_content(chunk_size=1024), expected_size=(total_length / 1024) + 1):
